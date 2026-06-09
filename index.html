@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Micro Four Thirds Depth of Field Calculator</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <section class="workspace" aria-label="Depth of field calculator">
+      <aside class="controls">
+        <label>
+          Focal length, mm
+          <div class="range-row">
+            <input id="focalRange" type="range" min="7" max="300" step="1" value="25">
+            <input id="focal" type="number" min="1" max="1000" step="1" value="25">
+          </div>
+        </label>
+
+        <div class="control-pair">
+          <label>
+            Aperture, f-number
+            <div class="range-row">
+              <input id="apertureRange" type="range" min="0.7" max="22" step="0.1" value="2.8">
+              <input id="aperture" type="number" min="0.7" max="64" step="0.1" value="2.8">
+            </div>
+          </label>
+
+          <label>
+            Focus distance, m
+            <div class="range-row">
+              <input id="distanceRange" type="range" min="0.1" max="100" step="0.1" value="3">
+              <input id="distance" type="number" min="0.1" max="1000" step="0.1" value="3">
+            </div>
+          </label>
+        </div>
+
+        <div class="results" aria-live="polite">
+          <div class="metric">
+            <span class="metric-label">Near limit</span>
+            <span id="nearLimit" class="metric-value">-</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Far limit</span>
+            <span id="farLimit" class="metric-value">-</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Total DOF</span>
+            <span id="totalDof" class="metric-value">-</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">Hyperfocal</span>
+            <span id="hyperfocal" class="metric-value">-</span>
+          </div>
+          <button class="metric metric-action" id="portraitMetric" type="button">
+            <span class="metric-label">2.5 m portrait</span>
+            <span id="portraitDistance" class="metric-value">-</span>
+          </button>
+          <button class="metric metric-action" id="landscapeMetric" type="button">
+            <span class="metric-label">2.5 m landscape</span>
+            <span id="landscapeDistance" class="metric-value">-</span>
+          </button>
+        </div>
+      </aside>
+
+      <section class="charts">
+        <div class="chart-wrap">
+          <div class="chart-head">
+            <h2 class="chart-title">Focus Distance 1-10 m</h2>
+            <span class="chart-note">Y axis auto-scales in meters</span>
+          </div>
+          <canvas id="chartShort" width="980" height="390" aria-label="Depth of field graph from 1 to 10 meters"></canvas>
+          <div class="legend"><span>Near limit</span><span>Far limit</span><span>Total DOF</span></div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-head">
+            <h2 class="chart-title">Focus Distance 0-100 m</h2>
+            <span class="chart-note">Infinity is clipped at the chart top</span>
+          </div>
+          <canvas id="chartLong" width="980" height="390" aria-label="Depth of field graph from 0 to 100 meters"></canvas>
+          <div class="legend"><span>Near limit</span><span>Far limit</span><span>Total DOF</span></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
