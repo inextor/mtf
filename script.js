@@ -221,3 +221,9 @@ actions.landscape.addEventListener("click", () => {
 
 window.addEventListener("resize", render);
 render();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js");
+  });
+}
