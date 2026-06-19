@@ -1,4 +1,4 @@
-const CACHE_NAME = "mft-dof-v1";
+const CACHE_NAME = "mft-dof-v5";
 const APP_SHELL = [
   "./",
   "index.html",

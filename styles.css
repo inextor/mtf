@@ -170,6 +170,20 @@ input[type="range"] {
   gap: 18px;
 }
 
+.aps-c-equivalent {
+  margin: 18px 0 0;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.aps-c-equivalent strong {
+  color: var(--ink);
+}
+
 .chart-wrap {
   padding: 16px;
 }

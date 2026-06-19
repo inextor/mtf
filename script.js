@@ -1,6 +1,9 @@
 const COC_MM = 0.015;
 const MFT_SENSOR_WIDTH_MM = 17.3;
 const MFT_SENSOR_HEIGHT_MM = 13;
+const MFT_CROP_FACTOR = 2;
+const SONY_APS_C_CROP_FACTOR = 1.5;
+const CANON_APS_C_CROP_FACTOR = 1.6;
 const FRAMING_SUBJECT_HEIGHT_M = 2.5;
 const inputs = {
   focal: document.querySelector("#focal"),
@@ -11,6 +14,7 @@ const inputs = {
   distanceRange: document.querySelector("#distanceRange")
 };
 const output = {
+  apsCEquivalent: document.querySelector("#apsCEquivalent"),
   near: document.querySelector("#nearLimit"),
   far: document.querySelector("#farLimit"),
   total: document.querySelector("#totalDof"),
@@ -55,6 +59,11 @@ function formatMeters(value) {
   if (value < 10) return `${value.toFixed(2)} m`;
   if (value < 100) return `${value.toFixed(1)} m`;
   return `${Math.round(value)} m`;
+}
+
+function formatFocalLength(value) {
+  const rounded = Math.round(value * 10) / 10;
+  return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)} mm`;
 }
 
 function niceCeil(value) {
@@ -183,6 +192,9 @@ function render() {
   const distance = readNumber(inputs.distance, 3);
   const value = dof(focal, aperture, distance);
 
+  const sonyApsC = formatFocalLength((focal * MFT_CROP_FACTOR) / SONY_APS_C_CROP_FACTOR);
+  const canonApsC = formatFocalLength((focal * MFT_CROP_FACTOR) / CANON_APS_C_CROP_FACTOR);
+  output.apsCEquivalent.textContent = `Sony ${sonyApsC}, Canon ${canonApsC}`;
   output.near.textContent = formatMeters(value.nearM);
   output.far.textContent = formatMeters(value.farM);
   output.total.textContent = formatMeters(value.totalM);
