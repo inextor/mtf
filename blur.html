@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Micro Four Thirds Blur Index Calculator</title>
+  <meta name="theme-color" content="#176b87">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .workspace.blur-workspace { grid-template-columns: 380px minmax(0, 1fr); }
+    .lens-group { display: grid; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #f8fafc; }
+    .lens-group.lens-a { border-left: 4px solid var(--accent); }
+    .lens-group.lens-b { border-left: 4px solid var(--accent-2); }
+    .lens-title { margin: 0; font-size: 0.86rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .lens-title span.badge { font-size: 0.72rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; color:#fff; }
+    .lens-a .badge { background: var(--accent); }
+    .lens-b .badge { background: var(--accent-2); }
+    .shared-controls { display:grid; gap:12px; padding: 12px; border: 1px dashed #c8d0dc; border-radius: 8px; background:#ffffff; }
+    .shared-title { margin:0; font-size:0.82rem; font-weight:800; color:var(--muted); text-transform:uppercase; }
+    .blur-results { display:grid; gap:10px; }
+    .compare-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .compare-col { display:grid; gap:8px; }
+    .compare-col h3 { margin:0; font-size:0.78rem; font-weight:800; text-transform:uppercase; color:var(--muted); }
+    .compare-col.lens-a-col .metric { border-left-color: var(--accent); }
+    .compare-col.lens-b-col .metric { border-left-color: var(--accent-2); }
+    .metric.winner { background: #eef6f8; box-shadow: inset 0 0 0 1px rgba(23,107,135,0.15); }
+    .formula { font-size:0.78rem; color:var(--muted); background:#fff; border:1px solid var(--line); border-radius:6px; padding:10px 12px; line-height:1.5; }
+    .formula strong { color: var(--ink); }
+    .toggle-row { display:flex; align-items:center; gap:8px; font-size:0.82rem; font-weight:700; color:var(--ink); }
+    .toggle-row input[type="checkbox"] { width:18px; min-height:18px; accent-color: var(--accent); }
+    @media (max-width: 860px) {
+      .workspace.blur-workspace { grid-template-columns: 1fr; }
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+      <h1 style="margin:0; font-size:1.35rem; letter-spacing:-0.02em;">Blur Index — Lens Comparison</h1>
+      <nav style="display:flex; gap:8px;">
+        <a href="index.html" style="padding:8px 14px; border-radius:999px; border:1px solid var(--line); background:#fff; color:var(--ink); text-decoration:none; font-weight:700; font-size:0.84rem;">DOF Calculator</a>
+        <a href="blur.html" aria-current="page" style="padding:8px 14px; border-radius:999px; background:var(--accent); color:#fff; text-decoration:none; font-weight:700; font-size:0.84rem;">Blur Index</a>
+      </nav>
+    </div>
+
+    <section class="workspace blur-workspace" aria-label="Blur index calculator">
+      <aside class="controls" style="gap:14px;">
+        <div class="shared-controls">
+          <p class="shared-title">Scene — shared for fair comparison</p>
+          <label>
+            Subject distance, m
+            <div class="range-row">
+              <input id="distanceRange" type="range" min="0.3" max="30" step="0.1" value="3">
+              <input id="distance" type="number" min="0.1" max="1000" step="0.1" value="3">
+            </div>
+          </label>
+          <label>
+            Background distance, m
+            <div class="range-row">
+              <input id="bgRange" type="range" min="0.5" max="100" step="0.5" value="10">
+              <input id="bg" type="number" min="0.2" max="1000" step="0.1" value="10">
+            </div>
+          </label>
+          <label class="toggle-row"><input id="sameFraming" type="checkbox"> Same framing (2.5 m subject height) — auto distance per lens</label>
+          <label class="toggle-row"><input id="infinityBg" type="checkbox"> Background at infinity</label>
+        </div>
+
+        <div class="lens-group lens-a">
+          <p class="lens-title">Lens A <span class="badge">vs</span></p>
+          <label>
+            Focal length, mm
+            <div class="range-row">
+              <input id="focalARange" type="range" min="7" max="300" step="1" value="25">
+              <input id="focalA" type="number" min="1" max="1000" step="1" value="25">
+            </div>
+          </label>
+          <label>
+            Aperture, f-number
+            <div class="range-row">
+              <input id="apertureARange" type="range" min="0.7" max="22" step="0.1" value="1.8">
+              <input id="apertureA" type="number" min="0.7" max="64" step="0.1" value="1.8">
+            </div>
+          </label>
+        </div>
+
+        <div class="lens-group lens-b">
+          <p class="lens-title">Lens B <span class="badge">compare</span></p>
+          <label>
+            Focal length, mm
+            <div class="range-row">
+              <input id="focalBRange" type="range" min="7" max="300" step="1" value="75">
+              <input id="focalB" type="number" min="1" max="1000" step="1" value="75">
+            </div>
+          </label>
+          <label>
+            Aperture, f-number
+            <div class="range-row">
+              <input id="apertureBRange" type="range" min="0.7" max="22" step="0.1" value="2.8">
+              <input id="apertureB" type="number" min="0.7" max="64" step="0.1" value="2.8">
+            </div>
+          </label>
+        </div>
+
+        <div class="blur-results" aria-live="polite">
+          <div class="compare-grid">
+            <div class="compare-col lens-a-col">
+              <h3>Lens A</h3>
+              <div class="metric" id="metricA-finite">
+                <span class="metric-label">Blur disk at BG</span>
+                <span id="blurA" class="metric-value">-</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Infinity blur (max)</span>
+                <span id="infA" class="metric-value">-</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Blur index ÷ CoC</span>
+                <span id="indexA" class="metric-value">-</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">% of frame height</span>
+                <span id="pctA" class="metric-value">-</span>
+              </div>
+            </div>
+            <div class="compare-col lens-b-col">
+              <h3>Lens B</h3>
+              <div class="metric" id="metricB-finite">
+                <span class="metric-label">Blur disk at BG</span>
+                <span id="blurB" class="metric-value">-</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Infinity blur (max)</span>
+                <span id="infB" class="metric-value">-</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Blur index ÷ CoC</span>
+                <span id="indexB" class="metric-value">-</span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">% of frame height</span>
+                <span id="pctB" class="metric-value">-</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="metric" style="grid-template-columns: 1fr auto; border-left-color: var(--good);">
+            <span class="metric-label">A vs B — blur ratio at BG</span>
+            <span id="ratio" class="metric-value">-</span>
+          </div>
+          <div class="metric" style="grid-template-columns: 1fr auto; border-left-color: #6b7280;">
+            <span class="metric-label">A vs B — infinity ratio</span>
+            <span id="ratioInf" class="metric-value">-</span>
+          </div>
+          <div class="metric" style="grid-template-columns: 1fr auto;">
+            <span class="metric-label">Winner (more blur) at BG</span>
+            <span id="winner" class="metric-value">-</span>
+          </div>
+        </div>
+
+        <div class="formula">
+          <strong>Blur index:</strong> thin-lens circle for a background point.<br>
+          <code>c = f²·(bg − s) / ( N · s · (bg − f) )</code> &nbsp;→&nbsp; at infinity <code>c∞ = f² / ( N·(s−f) )</code><br>
+          <strong>Index</strong> = c / CoC (MFT CoC 0.015 mm) · % frame = c / 13 mm · sensor 17.3×13 mm, 2× crop.
+        </div>
+      </aside>
+
+      <section class="charts">
+        <div class="chart-wrap">
+          <div class="chart-head">
+            <h2 class="chart-title">Blur vs Subject Distance 1–10 m</h2>
+            <span class="chart-note">BG at <span id="chartBgNote1">10 m</span> · Y: blur disk (mm) on sensor</span>
+          </div>
+          <canvas id="chartShort" width="980" height="390" aria-label="Blur vs subject distance 1 to 10 meters"></canvas>
+          <div class="legend"><span>Lens A</span><span>Lens B</span><span>CoC (0.015 mm)</span></div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-head">
+            <h2 class="chart-title">Blur vs Subject Distance 0–30 m · Infinity BG</h2>
+            <span class="chart-note">Maximum blur potential c∞ — Y clipped at chart top</span>
+          </div>
+          <canvas id="chartLong" width="980" height="390" aria-label="Infinity blur vs subject distance 0 to 30 meters"></canvas>
+          <div class="legend"><span>Lens A c∞</span><span>Lens B c∞</span><span>CoC</span></div>
+        </div>
+
+        <div class="chart-wrap">
+          <div class="chart-head">
+            <h2 class="chart-title">Blur vs Background Distance</h2>
+            <span class="chart-note">Subject at <span id="chartSubjectNote">3 m</span> · BG 1–100 m · Y: blur (mm)</span>
+          </div>
+          <canvas id="chartBg" width="980" height="390" aria-label="Blur vs background distance"></canvas>
+          <div class="legend"><span>Lens A</span><span>Lens B</span><span>CoC</span></div>
+        </div>
+
+        <p class="aps-c-equivalent" aria-live="polite">
+          <span>Equivalence:</span>
+          <strong id="equiv">-</strong>
+        </p>
+      </section>
+    </section>
+  </main>
+
+<script>
+const COC_MM = 0.015;
+const MFT_SENSOR_HEIGHT_MM = 13;
+const FRAMING_SUBJECT_HEIGHT_M = 2.5;
+const inputs = {
+  focalA: document.querySelector('#focalA'),
+  focalARange: document.querySelector('#focalARange'),
+  apertureA: document.querySelector('#apertureA'),
+  apertureARange: document.querySelector('#apertureARange'),
+  focalB: document.querySelector('#focalB'),
+  focalBRange: document.querySelector('#focalBRange'),
+  apertureB: document.querySelector('#apertureB'),
+  apertureBRange: document.querySelector('#apertureBRange'),
+  distance: document.querySelector('#distance'),
+  distanceRange: document.querySelector('#distanceRange'),
+  bg: document.querySelector('#bg'),
+  bgRange: document.querySelector('#bgRange'),
+  sameFraming: document.querySelector('#sameFraming'),
+  infinityBg: document.querySelector('#infinityBg'),
+};
+const out = {
+  blurA: document.querySelector('#blurA'),
+  blurB: document.querySelector('#blurB'),
+  infA: document.querySelector('#infA'),
+  infB: document.querySelector('#infB'),
+  indexA: document.querySelector('#indexA'),
+  indexB: document.querySelector('#indexB'),
+  pctA: document.querySelector('#pctA'),
+  pctB: document.querySelector('#pctB'),
+  ratio: document.querySelector('#ratio'),
+  ratioInf: document.querySelector('#ratioInf'),
+  winner: document.querySelector('#winner'),
+  equiv: document.querySelector('#equiv'),
+  chartBgNote1: document.querySelector('#chartBgNote1'),
+  chartSubjectNote: document.querySelector('#chartSubjectNote'),
+  metricA: document.querySelector('#metricA-finite'),
+  metricB: document.querySelector('#metricB-finite'),
+};
+function readNumber(el, fb) { const v = Number(el.value); return Number.isFinite(v) && v > 0 ? v : fb; }
+function blurDisk(f, N, sM, bgM) {
+  if (!bgM || !Number.isFinite(bgM) || bgM <= sM) return 0;
+  const s = sM * 1000; const bg = bgM * 1000;
+  if (bg <= f || s <= f) return 0;
+  return (f*f * (bg - s)) / (N * s * (bg - f));
+}
+function blurInfinity(f, N, sM) {
+  const s = sM * 1000;
+  if (s <= f) return 0;
+  return (f*f) / (N * (s - f));
+}
+function effectiveSubjectDistance(baseM, focalMm) {
+  if (!inputs.sameFraming.checked) return baseM;
+  const REF_F = 25;
+  return baseM * (focalMm / REF_F);
+}
+function formatMm(v) {
+  if (!Number.isFinite(v) || v <= 0) return '0 mm';
+  if (v < 0.01) return `${(v*1000).toFixed(1)} µm`;
+  if (v < 1) return `${v.toFixed(3)} mm`;
+  if (v < 10) return `${v.toFixed(2)} mm`;
+  return `${v.toFixed(1)} mm`;
+}
+function formatIndex(v) {
+  if (!Number.isFinite(v) || v <= 0) return '0×';
+  if (v < 10) return `${v.toFixed(1)}×`;
+  if (v < 100) return `${v.toFixed(0)}×`;
+  return `${Math.round(v)}×`;
+}
+function formatPct(v) {
+  if (!Number.isFinite(v) || v <= 0) return '0 %';
+  return `${v.toFixed(1)} %`;
+}
+function niceCeil(v) {
+  if (!Number.isFinite(v) || v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v)));
+  const n = v / p;
+  const s = n <= 1.5 ? 1.5 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+  return s * p;
+}
+function resizeCanvas(canvas) {
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(320, Math.floor(rect.width * ratio));
+  canvas.height = Math.max(220, Math.floor(rect.height * ratio));
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(ratio,0,0,ratio,0,0);
+  return { ctx, width: rect.width, height: rect.height };
+}
+function drawLine(ctx, points, xToPx, yToPx, getY, color, width) {
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.beginPath();
+  let started=false;
+  points.forEach(p=>{
+    const y=getY(p);
+    if (!Number.isFinite(y)) { started=false; return; }
+    const x=xToPx(p.x); const py=yToPx(Math.min(y, 1e9));
+    if (!started){ ctx.moveTo(x,py); started=true; } else ctx.lineTo(x,py);
+  });
+  ctx.stroke();
+}
+function drawChartBlurVsSubject(canvas, startM, endM, getBlur) {
+  const {ctx,width,height}=resizeCanvas(canvas);
+  const pad={left:58,right:18,top:18,bottom:46};
+  const plotW=width-pad.left-pad.right;
+  const plotH=height-pad.top-pad.bottom;
+  const samples=180;
+  const pointsA=[], pointsB=[];
+  let maxY=COC_MM*2;
+  for(let i=0;i<=samples;i++){
+    const x=startM + ((endM-startM)*i)/samples;
+    const a=getBlur('A', x);
+    const b=getBlur('B', x);
+    pointsA.push({x,y:a});
+    pointsB.push({x,y:b});
+    if(Number.isFinite(a)) maxY=Math.max(maxY,a);
+    if(Number.isFinite(b)) maxY=Math.max(maxY,b);
+  }
+  const yMax=niceCeil(Math.max(maxY, 0.05));
+  const xToPx=x=>pad.left + ((x-startM)/(endM-startM))*plotW;
+  const yToPx=y=>pad.top + plotH - (Math.min(y,yMax)/yMax)*plotH;
+  ctx.clearRect(0,0,width,height);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,width,height);
+  ctx.strokeStyle='#e5e9f0'; ctx.lineWidth=1;
+  ctx.font='12px Inter, system-ui, sans-serif'; ctx.fillStyle='#667085';
+  for(let i=0;i<=5;i++){
+    const y=(yMax*i)/5; const py=yToPx(y);
+    ctx.beginPath(); ctx.moveTo(pad.left,py); ctx.lineTo(width-pad.right,py); ctx.stroke();
+    const label = y < 0.1 ? `${(y*1000).toFixed(0)} µm` : y < 1 ? `${y.toFixed(2)} mm` : `${y.toFixed(1)} mm`;
+    ctx.fillText(label, 6, py+4);
+  }
+  const xTicks=endM<=10?9:6;
+  for(let i=0;i<=xTicks;i++){
+    const x=startM+((endM-startM)*i)/xTicks; const px=xToPx(x);
+    ctx.beginPath(); ctx.moveTo(px,pad.top); ctx.lineTo(px,height-pad.bottom); ctx.stroke();
+    ctx.fillText(`${Math.round(x)} m`, px-14, height-18);
+  }
+  ctx.strokeStyle='#aeb7c4'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left,pad.top); ctx.lineTo(pad.left,height-pad.bottom); ctx.lineTo(width-pad.right,height-pad.bottom); ctx.stroke();
+  ctx.strokeStyle='#237a57'; ctx.setLineDash([4,4]); ctx.lineWidth=1.5;
+  ctx.beginPath(); const cocY=yToPx(Math.min(COC_MM,yMax)); ctx.moveTo(pad.left,cocY); ctx.lineTo(width-pad.right,cocY); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#237a57'; ctx.fillText('CoC', width-pad.right-34, cocY-6);
+  drawLine(ctx,pointsA,xToPx,yToPx,p=>p.y,'#176b87',2.5);
+  drawLine(ctx,pointsB,xToPx,yToPx,p=>p.y,'#c7532c',2.5);
+  const focusM=readNumber(inputs.distance,3);
+  if(focusM>=startM && focusM<=endM){
+    const px=xToPx(focusM);
+    ctx.strokeStyle='#17202a'; ctx.setLineDash([5,5]); ctx.beginPath(); ctx.moveTo(px,pad.top); ctx.lineTo(px,height-pad.bottom); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#17202a'; ctx.fillText('subject', Math.min(px+6,width-70), pad.top+14);
+  }
+}
+function drawChartBlurVsBg(canvas, subjectM, getBlurAtBg){
+  const {ctx,width,height}=resizeCanvas(canvas);
+  const pad={left:58,right:18,top:18,bottom:46};
+  const plotW=width-pad.left-pad.right;
+  const plotH=height-pad.top-pad.bottom;
+  const startM=Math.max(subjectM+0.3, 1);
+  const endM=100;
+  const samples=180;
+  const pointsA=[], pointsB=[];
+  let maxY=COC_MM*2;
+  for(let i=0;i<=samples;i++){
+    const bg=startM + ((endM-startM)*i)/samples;
+    const a=getBlurAtBg('A', bg);
+    const b=getBlurAtBg('B', bg);
+    pointsA.push({x:bg,y:a});
+    pointsB.push({x:bg,y:b});
+    if(Number.isFinite(a)) maxY=Math.max(maxY,a);
+    if(Number.isFinite(b)) maxY=Math.max(maxY,b);
+  }
+  const yMax=niceCeil(Math.max(maxY, 0.05));
+  const xToPx=x=>pad.left + ((x-startM)/(endM-startM))*plotW;
+  const yToPx=y=>pad.top + plotH - (Math.min(y,yMax)/yMax)*plotH;
+  ctx.clearRect(0,0,width,height);
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,width,height);
+  ctx.strokeStyle='#e5e9f0'; ctx.lineWidth=1;
+  ctx.font='12px Inter, system-ui, sans-serif'; ctx.fillStyle='#667085';
+  for(let i=0;i<=5;i++){
+    const y=(yMax*i)/5; const py=yToPx(y);
+    ctx.beginPath(); ctx.moveTo(pad.left,py); ctx.lineTo(width-pad.right,py); ctx.stroke();
+    const label = y < 0.1 ? `${(y*1000).toFixed(0)} µm` : y < 1 ? `${y.toFixed(2)} mm` : `${y.toFixed(1)} mm`;
+    ctx.fillText(label, 6, py+4);
+  }
+  const xTicks=5;
+  for(let i=0;i<=xTicks;i++){
+    const x=startM+((endM-startM)*i)/xTicks; const px=xToPx(x);
+    ctx.beginPath(); ctx.moveTo(px,pad.top); ctx.lineTo(px,height-pad.bottom); ctx.stroke();
+    ctx.fillText(`${Math.round(x)} m`, px-14, height-18);
+  }
+  ctx.strokeStyle='#aeb7c4'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(pad.left,pad.top); ctx.lineTo(pad.left,height-pad.bottom); ctx.lineTo(width-pad.right,height-pad.bottom); ctx.stroke();
+  ctx.strokeStyle='#237a57'; ctx.setLineDash([4,4]); ctx.lineWidth=1.5;
+  ctx.beginPath(); const cocY=yToPx(Math.min(COC_MM,yMax)); ctx.moveTo(pad.left,cocY); ctx.lineTo(width-pad.right,cocY); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#237a57'; ctx.fillText('CoC', width-pad.right-34, cocY-6);
+  drawLine(ctx,pointsA,xToPx,yToPx,p=>p.y,'#176b87',2.5);
+  drawLine(ctx,pointsB,xToPx,yToPx,p=>p.y,'#c7532c',2.5);
+  const bgM = inputs.infinityBg.checked ? Infinity : readNumber(inputs.bg,10);
+  if(Number.isFinite(bgM) && bgM>=startM && bgM<=endM){
+    const px=xToPx(bgM);
+    ctx.strokeStyle='#17202a'; ctx.setLineDash([5,5]); ctx.beginPath(); ctx.moveTo(px,pad.top); ctx.lineTo(px,height-pad.bottom); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#17202a'; ctx.fillText('BG', Math.min(px+6,width-40), pad.top+14);
+  }
+}
+function syncPair(a,b){ b.value=a.value; }
+function render(){
+  const fA=readNumber(inputs.focalA,25);
+  const nA=readNumber(inputs.apertureA,1.8);
+  const fB=readNumber(inputs.focalB,75);
+  const nB=readNumber(inputs.apertureB,2.8);
+  const baseS=readNumber(inputs.distance,3);
+  const baseBg=readNumber(inputs.bg,10);
+  const infBg=inputs.infinityBg.checked;
+  const bgEff = infBg ? Infinity : baseBg;
+  const sA = effectiveSubjectDistance(baseS, fA);
+  const sB = effectiveSubjectDistance(baseS, fB);
+  const blurA = Number.isFinite(bgEff) ? blurDisk(fA,nA,sA,bgEff) : blurInfinity(fA,nA,sA);
+  const blurB = Number.isFinite(bgEff) ? blurDisk(fB,nB,sB,bgEff) : blurInfinity(fB,nB,sB);
+  const infBlurA = blurInfinity(fA,nA,sA);
+  const infBlurB = blurInfinity(fB,nB,sB);
+  const idxA = blurA / COC_MM;
+  const idxB = blurB / COC_MM;
+  const infIdxA = infBlurA / COC_MM;
+  const infIdxB = infBlurB / COC_MM;
+  out.blurA.textContent = formatMm(blurA) + ` · ${formatIndex(idxA)}`;
+  out.blurB.textContent = formatMm(blurB) + ` · ${formatIndex(idxB)}`;
+  out.infA.textContent = formatMm(infBlurA) + ` · ${formatIndex(infIdxA)}`;
+  out.infB.textContent = formatMm(infBlurB) + ` · ${formatIndex(infIdxB)}`;
+  out.indexA.textContent = formatIndex(idxA) + (Number.isFinite(bgEff) ? '' : ' (∞)');
+  out.indexB.textContent = formatIndex(idxB) + (Number.isFinite(bgEff) ? '' : ' (∞)');
+  out.pctA.textContent = formatPct((blurA / MFT_SENSOR_HEIGHT_MM)*100);
+  out.pctB.textContent = formatPct((blurB / MFT_SENSOR_HEIGHT_MM)*100);
+  const ratio = blurB > 0 ? (blurA / blurB) : (blurA > 0 ? Infinity : 1);
+  const ratioInf = infBlurB > 0 ? (infBlurA / infBlurB) : 1;
+  const fmtRatio = v => {
+    if (!Number.isFinite(v)) return '∞';
+    if (v >= 10) return `${v.toFixed(1)}×`;
+    if (v >= 1) return `${v.toFixed(2)}×`;
+    if (v > 0) return `1:${(1/v).toFixed(2)}`;
+    return '0';
+  };
+  out.ratio.textContent = Number.isFinite(bgEff) ? `${fmtRatio(ratio)} (A/B) · ${fmtRatio(1/ratio)} (B/A)` : `∞ BG — see infinity`;
+  out.ratioInf.textContent = `${fmtRatio(ratioInf)} (A/B) · ${fmtRatio(1/ratioInf)} (B/A)`;
+  let winner = '-';
+  if (blurA > blurB * 1.02) winner = 'Lens A';
+  else if (blurB > blurA * 1.02) winner = 'Lens B';
+  else winner = 'Tie';
+  out.winner.textContent = winner;
+  out.metricA.classList.toggle('winner', winner==='Lens A');
+  out.metricB.classList.toggle('winner', winner==='Lens B');
+  const ffEqA = `FF equiv: ${fA*2} mm f/${(nA*2).toFixed(1)} same blur·FOV`;
+  const ffEqB = `FF equiv: ${fB*2} mm f/${(nB*2).toFixed(1)}`;
+  const reframedNote = inputs.sameFraming.checked ? ' · reframed to same 2.5 m FOV' : '';
+  out.equiv.textContent = `${ffEqA}  |  ${ffEqB}${reframedNote}  ·  CoC 0.015 mm`;
+  out.chartBgNote1.textContent = infBg ? '∞' : `${baseBg} m`;
+  out.chartSubjectNote.textContent = inputs.sameFraming.checked ? `${baseS} m ref → A ${sA.toFixed(1)} m / B ${sB.toFixed(1)} m` : `${baseS} m`;
+  drawChartBlurVsSubject(document.querySelector('#chartShort'), 1, 10, (which, x)=>{
+    const f = which==='A'?fA:fB;
+    const n = which==='A'?nA:nB;
+    const sx = inputs.sameFraming.checked ? x * (f/25) : x;
+    const bg = infBg ? Infinity : baseBg;
+    if (!Number.isFinite(bg)) return blurInfinity(f,n,sx);
+    if (bg <= sx) return 0;
+    return blurDisk(f,n,sx,bg);
+  });
+  drawChartBlurVsSubject(document.querySelector('#chartLong'), 0.5, 30, (which, x)=>{
+    const f = which==='A'?fA:fB;
+    const n = which==='A'?nA:nB;
+    const sx = inputs.sameFraming.checked ? x * (f/25) : x;
+    return blurInfinity(f,n,sx);
+  });
+  drawChartBlurVsBg(document.querySelector('#chartBg'), baseS, (which, bg)=>{
+    const f = which==='A'?fA:fB;
+    const n = which==='A'?nA:nB;
+    const sx = which==='A'?sA:sB;
+    if (bg <= sx) return 0;
+    return blurDisk(f,n,sx,bg);
+  });
+  inputs.bg.disabled = infBg;
+  inputs.bgRange.disabled = infBg;
+  inputs.bg.style.opacity = infBg ? '0.5' : '1';
+  inputs.bgRange.style.opacity = infBg ? '0.5' : '1';
+}
+[
+  ['focalA','focalARange'],
+  ['apertureA','apertureARange'],
+  ['focalB','focalBRange'],
+  ['apertureB','apertureBRange'],
+  ['distance','distanceRange'],
+  ['bg','bgRange'],
+].forEach(([a,b])=>{
+  inputs[a].addEventListener('input', ()=>{ syncPair(inputs[a], inputs[b]); render(); });
+  inputs[b].addEventListener('input', ()=>{ syncPair(inputs[b], inputs[a]); render(); });
+});
+inputs.sameFraming.addEventListener('change', render);
+inputs.infinityBg.addEventListener('change', render);
+window.addEventListener('resize', render);
+render();
+</script>
+</body>
+</html>
