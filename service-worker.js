@@ -1,7 +1,8 @@
-const CACHE_NAME = "mft-dof-v5";
+const CACHE_NAME = "mft-dof-v6";
 const APP_SHELL = [
   "./",
   "index.html",
+  "blur.html",
   "styles.css",
   "script.js",
   "manifest.webmanifest"
